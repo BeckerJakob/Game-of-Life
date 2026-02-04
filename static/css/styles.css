@@ -85,8 +85,8 @@ html {
 }
 
 #btn-toggle.running {
-    background: var(--bg-color);
-    color: var(--text-color);
+    background: transparent;
+    color: white;
     border-color: var(--ui-border);
 }
 

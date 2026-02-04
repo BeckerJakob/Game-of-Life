@@ -26,6 +26,10 @@ class GameOfLife {
         this.startDragX = 0;
         this.startDragY = 0;
 
+        // Interaction Mode (Refactored to Middle Click Pan)
+        this.isPanning = false;
+        this.isPainting = false;
+
         // Bind methods
         this.resize = this.resize.bind(this);
         this.update = this.update.bind(this);
@@ -44,20 +48,28 @@ class GameOfLife {
         window.addEventListener('mouseup', this.handleMouseUp);
         this.canvas.addEventListener('wheel', this.handleWheel, { passive: false });
 
+        // Prevent default context menu on right click (optional, but good if we used right click)
+        // Prevent scroll on middle click
+        this.canvas.addEventListener('mousedown', (e) => {
+            if (e.button === 1) e.preventDefault();
+        });
+
         // UI Elements
         this.btnToggle = document.getElementById('btn-toggle');
+        this.btnRandom = document.getElementById('btn-random');
         this.btnReset = document.getElementById('btn-clear');
         this.slider = document.getElementById('speed-slider');
         this.genDisplay = document.getElementById('gen-count');
         this.popDisplay = document.getElementById('pop-count');
 
         this.btnToggle.addEventListener('click', this.toggle);
+        this.btnRandom.addEventListener('click', () => this.randomizeVisible());
         this.btnReset.addEventListener('click', this.reset);
         this.slider.addEventListener('input', this.handleSpeedChange);
 
         // Init
         this.resize();
-        this.randomize();
+        // this.randomize(); // Start Empty
         this.draw();
     }
 
@@ -78,20 +90,36 @@ class GameOfLife {
         return { x: parseInt(parts[0]), y: parseInt(parts[1]) };
     }
 
-    randomize() {
-        this.grid.clear();
-        this.generatedChunks.clear();
-        this.generation = 0;
-        this.updateChunks();
+    randomizeVisible() {
+        // Populate ONLY visible area
+        const startWorldX = -this.offsetX / this.scale;
+        const endWorldX = (this.canvas.width - this.offsetX) / this.scale;
+        const startWorldY = -this.offsetY / this.scale;
+        const endWorldY = (this.canvas.height - this.offsetY) / this.scale;
+
+        const startCol = Math.floor(startWorldX / this.cellSize);
+        const endCol = Math.floor(endWorldX / this.cellSize);
+        const startRow = Math.floor(startWorldY / this.cellSize);
+        const endRow = Math.floor(endWorldY / this.cellSize);
+
+        for (let i = startCol; i <= endCol; i++) {
+            for (let j = startRow; j <= endRow; j++) {
+                const key = this.makeKey(i, j);
+                this.grid.delete(key); // Clear existing cell first
+                if (Math.random() > 0.85) {
+                    this.grid.add(key);
+                }
+            }
+        }
+        this.draw();
         this.updateStats();
     }
 
     reset() {
-        this.stop();
         this.grid.clear();
         this.generatedChunks.clear();
         this.generation = 0;
-        this.updateChunks();
+        // this.updateChunks(); 
         this.draw();
         this.updateStats();
     }
@@ -134,15 +162,24 @@ class GameOfLife {
     }
 
     handleMouseDown(e) {
-        this.isDragging = true;
-        this.lastMouseX = e.clientX;
-        this.lastMouseY = e.clientY;
-        this.startDragX = e.clientX;
-        this.startDragY = e.clientY;
+        if (e.button === 1) { // Middle Mouse Button
+            e.preventDefault(); // Prevent scroll cursor
+            this.isPanning = true;
+            this.lastMouseX = e.clientX;
+            this.lastMouseY = e.clientY;
+            this.canvas.style.cursor = 'grabbing';
+        } else if (e.button === 0) { // Left Mouse Button
+            this.isPainting = true;
+            this.startDragX = e.clientX;
+            this.startDragY = e.clientY;
+            // Optionally paint immediately on click? 
+            // Better wait for Up to distinguish Toggle vs Paint, OR paint immediately.
+            // User said "Modus Malen", implying drag-paint.
+        }
     }
 
     handleMouseMove(e) {
-        if (this.isDragging) {
+        if (this.isPanning) {
             const dx = e.clientX - this.lastMouseX;
             const dy = e.clientY - this.lastMouseY;
 
@@ -153,15 +190,29 @@ class GameOfLife {
             this.lastMouseY = e.clientY;
 
             this.draw();
+        } else if (this.isPainting) {
+            // Check if we moved enough to call it a drag "paint"
+            // Or just paint continuously. 
+            // If we just paint continuously, a static click fills 1 pixel. 
+            // That's fine. But we need to handle "Toggle" on static click.
+            // Logic: If isPainting, checking distance vs startDrag.
+            const dist = Math.hypot(e.clientX - this.startDragX, e.clientY - this.startDragY);
+            if (dist > this.dragThreshold) {
+                this.handleCellClick(e.clientX, e.clientY, true); // Force Add
+            }
         }
     }
 
     handleMouseUp(e) {
-        if (this.isDragging) {
-            this.isDragging = false;
+        if (this.isPanning && e.button === 1) {
+            this.isPanning = false;
+            this.canvas.style.cursor = 'default';
+        } else if (this.isPainting && e.button === 0) {
+            this.isPainting = false;
             const dist = Math.hypot(e.clientX - this.startDragX, e.clientY - this.startDragY);
             if (dist < this.dragThreshold) {
-                this.handleCellClick(e.clientX, e.clientY);
+                // It was a click, not a drag. Toggle.
+                this.handleCellClick(e.clientX, e.clientY, false);
             }
         }
     }
@@ -188,7 +239,7 @@ class GameOfLife {
         this.draw();
     }
 
-    handleCellClick(screenX, screenY) {
+    handleCellClick(screenX, screenY, forceAdd = false) {
         const rect = this.canvas.getBoundingClientRect();
         const x = screenX - rect.left;
         const y = screenY - rect.top;
@@ -200,14 +251,21 @@ class GameOfLife {
         const gridY = Math.floor(worldY / this.cellSize);
         const key = this.makeKey(gridX, gridY);
 
-        if (this.grid.has(key)) {
-            this.grid.delete(key);
+        if (forceAdd) {
+            if (!this.grid.has(key)) {
+                this.grid.add(key);
+                this.draw();
+                this.updateStats();
+            }
         } else {
-            this.grid.add(key);
+            if (this.grid.has(key)) {
+                this.grid.delete(key);
+            } else {
+                this.grid.add(key);
+            }
+            this.draw();
+            this.updateStats();
         }
-
-        this.draw();
-        this.updateStats();
     }
 
     toggle() {
@@ -221,7 +279,6 @@ class GameOfLife {
     start() {
         if (!this.isRunning) {
             this.isRunning = true;
-            this.btnToggle.textContent = 'Pause';
             this.btnToggle.classList.add('running');
             this.runLoop();
         }
@@ -230,7 +287,6 @@ class GameOfLife {
     stop() {
         if (this.isRunning) {
             this.isRunning = false;
-            this.btnToggle.textContent = 'Starten';
             this.btnToggle.classList.remove('running');
             if (this.intervalId) {
                 clearTimeout(this.intervalId);
@@ -332,8 +388,8 @@ class GameOfLife {
         this.ctx.translate(this.offsetX, this.offsetY);
         this.ctx.scale(this.scale, this.scale);
 
-        // Procedural Generation trigger on draw
-        this.updateChunks();
+        // Procedural Generation trigger REMOVED
+        // this.updateChunks();
 
         // Viewport Culling
         // Screen Rect: (0,0) to (width, height)
