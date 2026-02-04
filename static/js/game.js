@@ -118,6 +118,7 @@ class GameOfLife {
         };
 
         this.selectedPattern = null;
+        this.selectedPatternCenter = { x: 0, y: 0 };
         this.populateObjects();
 
         this.hoverGridX = 0;
@@ -181,6 +182,18 @@ class GameOfLife {
                     e.stopPropagation(); // Prevent bubbling
                     // e.preventDefault(); // Stop any default scrolling
                     this.selectedPattern = p;
+                    // Calculate center
+                    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                    p.points.forEach(([x, y]) => {
+                        if (x < minX) minX = x;
+                        if (y < minY) minY = y;
+                        if (x > maxX) maxX = x;
+                        if (y > maxY) maxY = y;
+                    });
+                    this.selectedPatternCenter = {
+                        x: Math.floor((maxX - minX + 1) / 2),
+                        y: Math.floor((maxY - minY + 1) / 2)
+                    };
                     this.modalObjects.classList.add('hidden');
                     // Optional: Change cursor?
                 });
@@ -316,10 +329,18 @@ class GameOfLife {
     handleMouseDown(e) {
         if (e.button === 2) { // Right Click
             e.preventDefault();
-            this.selectedPattern = null;
-            this.isPainting = false;
-            this.isPanning = false;
-            this.draw(); // Update view immediately
+            if (this.selectedPattern) {
+                // Cancel Object Selection
+                this.selectedPattern = null;
+                this.isPainting = false;
+                this.isPanning = false;
+                this.draw();
+            } else {
+                // Eraser Mode
+                this.isErasing = true;
+                this.startDragX = e.clientX;
+                this.startDragY = e.clientY;
+            }
             return;
         }
 
@@ -352,8 +373,11 @@ class GameOfLife {
         const gridX = Math.floor(worldX / this.cellSize);
         const gridY = Math.floor(worldY / this.cellSize);
 
+        const cx = this.selectedPatternCenter.x;
+        const cy = this.selectedPatternCenter.y;
+
         this.selectedPattern.points.forEach(([dx, dy]) => {
-            this.grid.add(this.makeKey(gridX + dx, gridY + dy));
+            this.grid.add(this.makeKey(gridX + dx - cx, gridY + dy - cy));
         });
 
         // Pattern remains selected until Right Click (handled in handleMouseDown)
@@ -391,7 +415,13 @@ class GameOfLife {
             // Paint only if NOT placing object
             const dist = Math.hypot(e.clientX - this.startDragX, e.clientY - this.startDragY);
             if (dist > this.dragThreshold) {
-                this.handleCellClick(e.clientX, e.clientY, true); // Force Add
+                this.handleCellClick(e.clientX, e.clientY, 'add'); // Force Add
+            }
+        } else if (this.isErasing) {
+            // Erase Logic
+            const dist = Math.hypot(e.clientX - this.startDragX, e.clientY - this.startDragY);
+            if (dist > this.dragThreshold) {
+                this.handleCellClick(e.clientX, e.clientY, 'remove'); // Force Remove
             }
         }
     }
@@ -405,7 +435,14 @@ class GameOfLife {
             const dist = Math.hypot(e.clientX - this.startDragX, e.clientY - this.startDragY);
             if (dist < this.dragThreshold) {
                 // It was a click, not a drag. Toggle.
-                this.handleCellClick(e.clientX, e.clientY, false);
+                this.handleCellClick(e.clientX, e.clientY, 'toggle');
+            }
+        } else if (this.isErasing && e.button === 2) {
+            this.isErasing = false;
+            const dist = Math.hypot(e.clientX - this.startDragX, e.clientY - this.startDragY);
+            if (dist < this.dragThreshold) {
+                // Click to erase single cell
+                this.handleCellClick(e.clientX, e.clientY, 'remove');
             }
         }
     }
@@ -432,7 +469,7 @@ class GameOfLife {
         this.draw();
     }
 
-    handleCellClick(screenX, screenY, forceAdd = false) {
+    handleCellClick(screenX, screenY, mode = 'toggle') {
         const rect = this.canvas.getBoundingClientRect();
         const x = screenX - rect.left;
         const y = screenY - rect.top;
@@ -444,13 +481,19 @@ class GameOfLife {
         const gridY = Math.floor(worldY / this.cellSize);
         const key = this.makeKey(gridX, gridY);
 
-        if (forceAdd) {
+        if (mode === 'add') {
             if (!this.grid.has(key)) {
                 this.grid.add(key);
                 this.draw();
                 this.updateStats();
             }
-        } else {
+        } else if (mode === 'remove') {
+            if (this.grid.has(key)) {
+                this.grid.delete(key);
+                this.draw();
+                this.updateStats();
+            }
+        } else { // toggle
             if (this.grid.has(key)) {
                 this.grid.delete(key);
             } else {
@@ -619,10 +662,12 @@ class GameOfLife {
 
         // Ghost Preview
         if (this.selectedPattern) {
+            const cx = this.selectedPatternCenter.x;
+            const cy = this.selectedPatternCenter.y;
             this.ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
             this.selectedPattern.points.forEach(([dx, dy]) => {
-                const px = this.hoverGridX + dx;
-                const py = this.hoverGridY + dy;
+                const px = this.hoverGridX + dx - cx;
+                const py = this.hoverGridY + dy - cy;
                 // Only draw if visible (optimization)
                 if (px >= startCol && px <= endCol && py >= startRow && py <= endRow) {
                     this.ctx.fillRect(px * this.cellSize + 0.5, py * this.cellSize + 0.5, this.cellSize - 1, this.cellSize - 1);
