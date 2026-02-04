@@ -107,13 +107,19 @@ class GameOfLife {
             ],
             'Oszillatoren': [
                 { name: 'Blinker', points: [[0, 0], [1, 0], [2, 0]], period: 2 },
-                { name: 'Toad', points: [[1, 0], [2, 0], [3, 0], [0, 1], [1, 1], [2, 1]], period: 2 },
-                { name: 'Beacon', points: [[0, 0], [1, 0], [0, 1], [1, 1], [2, 2], [3, 2], [2, 3], [3, 3]], period: 2 },
-                { name: 'Pulsar', points: [[2, 0], [3, 0], [4, 0], [8, 0], [9, 0], [10, 0], [0, 2], [5, 2], [7, 2], [12, 2], [0, 3], [5, 3], [7, 3], [12, 3], [0, 4], [5, 4], [7, 4], [12, 4], [2, 5], [3, 5], [4, 5], [8, 5], [9, 5], [10, 5], [2, 7], [3, 7], [4, 7], [8, 7], [9, 7], [10, 7], [0, 8], [5, 8], [7, 8], [12, 8], [0, 9], [5, 9], [7, 9], [12, 9], [0, 10], [5, 10], [7, 10], [12, 10], [2, 12], [3, 12], [4, 12], [8, 12], [9, 12], [10, 12]], period: 3 }
+                { name: 'Uhr', points: [[2, 0], [0, 1], [1, 1], [2, 2], [3, 2], [1, 3]], period: 2 }, // Simple Clock 
+                { name: 'Kröte', points: [[1, 0], [2, 0], [3, 0], [0, 1], [1, 1], [2, 1]], period: 2 },
+                { name: 'Bipole', points: [[0, 0], [1, 0], [0, 1], [1, 1], [2, 2], [3, 2], [2, 3], [3, 3]], period: 2 },
+                { name: 'Tripole', points: [[0, 0], [1, 0], [0, 1], [2, 1], [2, 3], [4, 3], [3, 4], [4, 4]], period: 2 }, // Approximation
+                { name: 'Pulsator', points: [[2, 0], [7, 0], [0, 1], [1, 1], [3, 1], [4, 1], [5, 1], [6, 1], [8, 1], [9, 1], [2, 2], [7, 2]], period: 15 }, // Pentadecathlon
+                { name: 'Tümmler', points: [[0, 0], [1, 0], [2, 0], [4, 0], [5, 0], [6, 0], [0, 1], [6, 1], [2, 2], [4, 2], [1, 3], [2, 3], [4, 3], [5, 3], [0, 4], [6, 4]], period: 14 },
+                { name: 'Oktagon', points: [[3, 0], [4, 0], [2, 1], [5, 1], [1, 2], [6, 2], [0, 3], [7, 3], [0, 4], [7, 4], [1, 5], [6, 5], [2, 6], [5, 6], [3, 7], [4, 7]], period: 5 }
             ],
             'Raumschiffe': [
                 { name: 'Gleiter', points: [[1, 0], [2, 1], [0, 2], [1, 2], [2, 2]] },
-                { name: 'LWSS', points: [[1, 0], [4, 0], [0, 0], [0, 2], [4, 2], [0, 2], [1, 3], [2, 3], [3, 3], [4, 2], [4, 1], [0, 1]] }
+                { name: 'LWSS', points: [[1, 0], [2, 0], [3, 0], [4, 0], [0, 1], [4, 1], [4, 2], [0, 3], [3, 3]] },
+                { name: 'MWSS', points: [[1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [0, 1], [5, 1], [5, 2], [0, 3], [4, 3], [2, 4]] },
+                { name: 'HWSS', points: [[1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0], [0, 1], [6, 1], [6, 2], [0, 3], [5, 3], [2, 4], [3, 4]] }
             ]
         };
 
@@ -256,6 +262,8 @@ class GameOfLife {
     }
 
     randomizeVisible() {
+        this.reset(); // Clear everything first (User Request: "Reset auslösen")
+
         // Populate ONLY visible area
         const startWorldX = -this.offsetX / this.scale;
         const endWorldX = (this.canvas.width - this.offsetX) / this.scale;
@@ -270,7 +278,7 @@ class GameOfLife {
         for (let i = startCol; i <= endCol; i++) {
             for (let j = startRow; j <= endRow; j++) {
                 const key = this.makeKey(i, j);
-                this.grid.delete(key); // Clear existing cell first
+                // this.grid.delete(key); // Not needed after reset()
                 if (Math.random() > 0.85) {
                     this.grid.add(key);
                 }
