@@ -23,8 +23,8 @@
                 <button id="btn-clear" class="btn secondary">Reset</button>
             </div>
             <div class="btn-group">
-                <button class="btn secondary">Anleitung</button>
-                <button class="btn secondary">Objekte</button>
+                <button id="btn-help" class="btn secondary">Anleitung</button>
+                <button id="btn-objects" class="btn secondary">Objekte</button>
             </div>
             <div class="speed-control">
                 <label for="speed-slider">Geschwindigkeit</label>
@@ -38,6 +38,44 @@
     </div>
 
     <canvas id="universe"></canvas>
+
+    <!-- Instructions Modal -->
+    <div id="modal-help" class="modal hidden">
+        <div class="modal-content">
+            <h2 class="modal-title">Anleitung</h2>
+
+            <div class="modal-section">
+                <h3>Was ist das?</h3>
+                <p>Das Spiel des Lebens ist ein zellulärer Automat, entworfen von John Conway. Es ist eine Simulation,
+                    kein Spiel im herkömmlichen Sinne. Die Entwicklung wird durch den Anfangszustand bestimmt.</p>
+                <ul>
+                    <li>Eine tote Zelle mit genau 3 lebenden Nachbarn wird geboren.</li>
+                    <li>Eine lebende Zelle mit 2 oder 3 lebenden Nachbarn überlebt.</li>
+                    <li>Alle anderen Zellen sterben (Einsamkeit oder Überbevölkerung).</li>
+                </ul>
+            </div>
+
+            <div class="modal-section">
+                <h3>Steuerung</h3>
+                <div class="controls-grid">
+                    <div class="control-item">
+                        <div class="mouse-icon lmb"></div>
+                        <span><strong>Malen / Toggle</strong><br>Linke Maustaste</span>
+                    </div>
+                    <div class="control-item">
+                        <div class="mouse-icon mmb"></div>
+                        <span><strong>Kamera Bewegen</strong><br>Mittlere Maustaste (Rad)</span>
+                    </div>
+                    <div class="control-item">
+                        <div class="mouse-icon wheel"></div>
+                        <span><strong>Zoom</strong><br>Mausrad drehen</span>
+                    </div>
+                </div>
+            </div>
+
+            <button id="btn-close-help" class="btn">Verstanden</button>
+        </div>
+    </div>
 
     <script src="{{ url_for('static', filename='js/game.js') }}"></script>
 </body>

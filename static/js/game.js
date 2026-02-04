@@ -58,6 +58,10 @@ class GameOfLife {
         this.btnToggle = document.getElementById('btn-toggle');
         this.btnRandom = document.getElementById('btn-random');
         this.btnReset = document.getElementById('btn-clear');
+        this.btnHelp = document.getElementById('btn-help');
+        this.modalHelp = document.getElementById('modal-help');
+        this.btnCloseHelp = document.getElementById('btn-close-help');
+
         this.slider = document.getElementById('speed-slider');
         this.genDisplay = document.getElementById('gen-count');
         this.popDisplay = document.getElementById('pop-count');
@@ -66,6 +70,13 @@ class GameOfLife {
         this.btnRandom.addEventListener('click', () => this.randomizeVisible());
         this.btnReset.addEventListener('click', this.reset);
         this.slider.addEventListener('input', this.handleSpeedChange);
+
+        // Modal Listeners
+        this.btnHelp.addEventListener('click', () => this.modalHelp.classList.remove('hidden'));
+        this.btnCloseHelp.addEventListener('click', () => this.modalHelp.classList.add('hidden'));
+        this.modalHelp.addEventListener('click', (e) => {
+            if (e.target === this.modalHelp) this.modalHelp.classList.add('hidden');
+        });
 
         // Init
         this.resize();
