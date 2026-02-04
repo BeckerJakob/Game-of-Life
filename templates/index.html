@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game of Life - Universum Modell</title>
+    <!-- Google Fonts for Premium Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;400;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+
+<body>
+    <div class="ui-overlay">
+        <h1 class="title">LEBENSRAUM</h1>
+        <div class="controls">
+            <div class="btn-group">
+                <button id="btn-toggle" class="btn">Starten</button>
+                <button id="btn-clear" class="btn secondary">Reset</button>
+            </div>
+            <div class="speed-control">
+                <label for="speed-slider">Geschwindigkeit</label>
+                <input type="range" id="speed-slider" min="1" max="60" value="1">
+            </div>
+        </div>
+        <div class="stats">
+            <span>Generation: <span id="gen-count">0</span></span>
+            <span>Population: <span id="pop-count">0</span></span>
+        </div>
+    </div>
+
+    <canvas id="universe"></canvas>
+
+    <script src="{{ url_for('static', filename='js/game.js') }}"></script>
+</body>
+
+</html>
