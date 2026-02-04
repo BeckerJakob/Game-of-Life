@@ -248,6 +248,7 @@ class GameOfLife {
             this.selectedPattern = null;
             this.isPainting = false;
             this.isPanning = false;
+            this.draw(); // Update view immediately
             return;
         }
 
@@ -284,12 +285,7 @@ class GameOfLife {
             this.grid.add(this.makeKey(gridX + dx, gridY + dy));
         });
 
-        this.selectedPattern = null; // Auto-deselect after placement? User said: "then the cursor... corresponding object" -> implies it stays? 
-        // "wenn man 1 ausgewählt hat schließt sich das Modal automatisch... und dann ist der Cursor... diese Entsprechende Objektierung... das Ganze stellt man eben wieder um Wenn man rechte Maustaste rückt"
-        // Meaning: Selected mode STAYS until right click.
-        // So I should NOT set selectedPattern = null here. 
-        // I will restore selectedPattern.
-        this.selectedPattern = this.selectedPattern; // No-op, just comment reminder.
+        // Pattern remains selected until Right Click (handled in handleMouseDown)
 
         this.draw();
         this.updateStats();
