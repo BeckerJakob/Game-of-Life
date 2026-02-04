@@ -78,6 +78,45 @@ class GameOfLife {
             if (e.target === this.modalHelp) this.modalHelp.classList.add('hidden');
         });
 
+        // Objects Elements
+        this.btnObjects = document.getElementById('btn-objects');
+        this.modalObjects = document.getElementById('modal-objects');
+        this.objectsList = document.getElementById('objects-list');
+        this.btnCloseObjects = document.getElementById('btn-close-objects');
+
+        this.btnObjects.addEventListener('click', () => this.modalObjects.classList.remove('hidden'));
+        this.btnCloseObjects.addEventListener('click', () => this.modalObjects.classList.add('hidden'));
+        this.modalObjects.addEventListener('click', (e) => {
+            if (e.target === this.modalObjects) this.modalObjects.classList.add('hidden');
+        });
+
+        // Prevent Context Menu (Global)
+        window.addEventListener('contextmenu', (e) => e.preventDefault());
+
+        // Patterns Data
+        this.patterns = {
+            'Still Lifes': [
+                { name: 'Block', points: [[0, 0], [1, 0], [0, 1], [1, 1]] },
+                { name: 'Bee-Hive', points: [[1, 0], [2, 0], [0, 1], [3, 1], [1, 2], [2, 2]] }
+            ],
+            'Oscillators': [
+                { name: 'Blinker', points: [[0, 0], [1, 0], [2, 0]] },
+                { name: 'Toad', points: [[1, 0], [2, 0], [3, 0], [0, 1], [1, 1], [2, 1]] },
+                { name: 'Beacon', points: [[0, 0], [1, 0], [0, 1], [1, 1], [2, 2], [3, 2], [2, 3], [3, 3]] },
+                { name: 'Pulsar', points: [[2, 0], [3, 0], [4, 0], [8, 0], [9, 0], [10, 0], [0, 2], [5, 2], [7, 2], [12, 2], [0, 3], [5, 3], [7, 3], [12, 3], [0, 4], [5, 4], [7, 4], [12, 4], [2, 5], [3, 5], [4, 5], [8, 5], [9, 5], [10, 5], [2, 7], [3, 7], [4, 7], [8, 7], [9, 7], [10, 7], [0, 8], [5, 8], [7, 8], [12, 8], [0, 9], [5, 9], [7, 9], [12, 9], [0, 10], [5, 10], [7, 10], [12, 10], [2, 12], [3, 12], [4, 12], [8, 12], [9, 12], [10, 12]] }
+            ],
+            'Spaceships': [
+                { name: 'Glider', points: [[1, 0], [2, 1], [0, 2], [1, 2], [2, 2]] },
+                { name: 'LWSS', points: [[1, 0], [4, 0], [0, 0], [0, 2], [4, 2], [0, 2], [1, 3], [2, 3], [3, 3], [4, 2], [4, 1], [0, 1]] } // Approximation
+            ]
+        };
+
+        this.selectedPattern = null;
+        this.populateObjects();
+
+        this.hoverGridX = 0;
+        this.hoverGridY = 0;
+
         // Init
         this.resize();
         // this.randomize(); // Start Empty
@@ -90,6 +129,37 @@ class GameOfLife {
         // Optimization: Center initially if empty? 
         // Logic remains same, viewport purely visual now.
         this.draw();
+    }
+
+    populateObjects() {
+        this.objectsList.innerHTML = '';
+
+        for (const [group, patterns] of Object.entries(this.patterns)) {
+            const groupDiv = document.createElement('div');
+            groupDiv.className = 'object-group';
+
+            const title = document.createElement('h3');
+            title.textContent = group;
+            groupDiv.appendChild(title);
+
+            const grid = document.createElement('div');
+            grid.className = 'object-grid';
+
+            patterns.forEach(p => {
+                const item = document.createElement('div');
+                item.className = 'object-item';
+                item.innerHTML = `<span>${p.name}</span>`;
+                item.addEventListener('click', () => {
+                    this.selectedPattern = p;
+                    this.modalObjects.classList.add('hidden');
+                    // Optional: Change cursor?
+                });
+                grid.appendChild(item);
+            });
+
+            groupDiv.appendChild(grid);
+            this.objectsList.appendChild(groupDiv);
+        }
     }
 
     makeKey(x, y) {
@@ -173,6 +243,14 @@ class GameOfLife {
     }
 
     handleMouseDown(e) {
+        if (e.button === 2) { // Right Click
+            e.preventDefault();
+            this.selectedPattern = null;
+            this.isPainting = false;
+            this.isPanning = false;
+            return;
+        }
+
         if (e.button === 1) { // Middle Mouse Button
             e.preventDefault(); // Prevent scroll cursor
             this.isPanning = true;
@@ -180,16 +258,57 @@ class GameOfLife {
             this.lastMouseY = e.clientY;
             this.canvas.style.cursor = 'grabbing';
         } else if (e.button === 0) { // Left Mouse Button
-            this.isPainting = true;
-            this.startDragX = e.clientX;
-            this.startDragY = e.clientY;
-            // Optionally paint immediately on click? 
-            // Better wait for Up to distinguish Toggle vs Paint, OR paint immediately.
-            // User said "Modus Malen", implying drag-paint.
+            if (this.selectedPattern) {
+                // Place Pattern
+                this.placePattern(e.clientX, e.clientY);
+            } else {
+                this.isPainting = true;
+                this.startDragX = e.clientX;
+                this.startDragY = e.clientY;
+            }
         }
     }
 
+    placePattern(screenX, screenY) {
+        const rect = this.canvas.getBoundingClientRect();
+        const x = screenX - rect.left;
+        const y = screenY - rect.top;
+
+        const worldX = (x - this.offsetX) / this.scale;
+        const worldY = (y - this.offsetY) / this.scale;
+
+        const gridX = Math.floor(worldX / this.cellSize);
+        const gridY = Math.floor(worldY / this.cellSize);
+
+        this.selectedPattern.points.forEach(([dx, dy]) => {
+            this.grid.add(this.makeKey(gridX + dx, gridY + dy));
+        });
+
+        this.selectedPattern = null; // Auto-deselect after placement? User said: "then the cursor... corresponding object" -> implies it stays? 
+        // "wenn man 1 ausgewählt hat schließt sich das Modal automatisch... und dann ist der Cursor... diese Entsprechende Objektierung... das Ganze stellt man eben wieder um Wenn man rechte Maustaste rückt"
+        // Meaning: Selected mode STAYS until right click.
+        // So I should NOT set selectedPattern = null here. 
+        // I will restore selectedPattern.
+        this.selectedPattern = this.selectedPattern; // No-op, just comment reminder.
+
+        this.draw();
+        this.updateStats();
+    }
+
     handleMouseMove(e) {
+        // Track hover position for ghost
+        const rect = this.canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const worldX = (x - this.offsetX) / this.scale;
+        const worldY = (y - this.offsetY) / this.scale;
+        this.hoverGridX = Math.floor(worldX / this.cellSize);
+        this.hoverGridY = Math.floor(worldY / this.cellSize);
+
+        if (this.selectedPattern) {
+            this.draw(); // Redraw to show ghost
+        }
+
         if (this.isPanning) {
             const dx = e.clientX - this.lastMouseX;
             const dy = e.clientY - this.lastMouseY;
@@ -201,12 +320,8 @@ class GameOfLife {
             this.lastMouseY = e.clientY;
 
             this.draw();
-        } else if (this.isPainting) {
-            // Check if we moved enough to call it a drag "paint"
-            // Or just paint continuously. 
-            // If we just paint continuously, a static click fills 1 pixel. 
-            // That's fine. But we need to handle "Toggle" on static click.
-            // Logic: If isPainting, checking distance vs startDrag.
+        } else if (this.isPainting && !this.selectedPattern) {
+            // Paint only if NOT placing object
             const dist = Math.hypot(e.clientX - this.startDragX, e.clientY - this.startDragY);
             if (dist > this.dragThreshold) {
                 this.handleCellClick(e.clientX, e.clientY, true); // Force Add
@@ -433,6 +548,19 @@ class GameOfLife {
             if (x >= startCol && x <= endCol && y >= startRow && y <= endRow) {
                 this.ctx.fillRect(x * this.cellSize + 0.5, y * this.cellSize + 0.5, this.cellSize - 1, this.cellSize - 1);
             }
+        }
+
+        // Ghost Preview
+        if (this.selectedPattern) {
+            this.ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+            this.selectedPattern.points.forEach(([dx, dy]) => {
+                const px = this.hoverGridX + dx;
+                const py = this.hoverGridY + dy;
+                // Only draw if visible (optimization)
+                if (px >= startCol && px <= endCol && py >= startRow && py <= endRow) {
+                    this.ctx.fillRect(px * this.cellSize + 0.5, py * this.cellSize + 0.5, this.cellSize - 1, this.cellSize - 1);
+                }
+            });
         }
 
         this.ctx.restore();
