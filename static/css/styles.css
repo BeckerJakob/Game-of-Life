@@ -285,8 +285,8 @@ input[type=range]::-webkit-slider-runnable-track {
 /* Mouse Graphics Grid */
 .controls-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1.5rem;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
     text-align: center;
 }
 
