@@ -182,8 +182,76 @@ input[type=range]::-webkit-slider-runnable-track {
     padding: 2rem;
     max-width: 600px;
     width: 90%;
+    max-height: 80vh;
+    /* Limit height */
+    display: flex;
+    flex-direction: column;
     color: var(--text-color);
     box-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
+}
+
+.modal-content.scrollable {
+    overflow-y: hidden;
+    /* Button stays fixed if we wanted, but simple scroll is fine */
+}
+
+#objects-list {
+    overflow-y: auto;
+    flex: 1;
+    /* Take remaining space */
+    padding-right: 1rem;
+    margin-bottom: 1rem;
+}
+
+/* Scrollbar Styling */
+#objects-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+#objects-list::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+#objects-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.object-group {
+    margin-bottom: 2rem;
+}
+
+.object-group h3 {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+    font-size: 1rem;
+    text-transform: uppercase;
+    color: #888;
+}
+
+.object-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 1rem;
+}
+
+.object-item {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid transparent;
+    padding: 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.object-item:hover {
+    border-color: white;
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.object-item span {
+    font-size: 0.9rem;
+    font-weight: bold;
 }
 
 .modal-title {
@@ -284,6 +352,18 @@ input[type=range]::-webkit-slider-runnable-track {
     border: 1px solid white;
     border-radius: 2px;
     animation: scroll 1.5s infinite;
+}
+
+/* Right Mouse Button Highlight */
+.mouse-icon.rmb::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 16px;
+    height: 20px;
+    background: white;
+    border-top-right-radius: 14px;
 }
 
 @keyframes scroll {
