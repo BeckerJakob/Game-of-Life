@@ -242,11 +242,30 @@ input[type=range]::-webkit-slider-runnable-track {
     text-align: center;
     cursor: pointer;
     transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    aspect-ratio: 1;
+    /* Make items square */
 }
 
 .object-item:hover {
     border-color: white;
     background: rgba(255, 255, 255, 0.15);
+}
+
+.preview-canvas {
+    width: 60px;
+    height: 60px;
+    image-rendering: pixelated;
+    /* Crisp edges */
+    opacity: 0.8;
+}
+
+.object-item:hover .preview-canvas {
+    opacity: 1;
 }
 
 .object-item span {

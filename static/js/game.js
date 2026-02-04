@@ -95,19 +95,25 @@ class GameOfLife {
 
         // Patterns Data
         this.patterns = {
-            'Still Lifes': [
+            'Stillleben': [
                 { name: 'Block', points: [[0, 0], [1, 0], [0, 1], [1, 1]] },
-                { name: 'Bee-Hive', points: [[1, 0], [2, 0], [0, 1], [3, 1], [1, 2], [2, 2]] }
+                { name: 'Bienenstock', points: [[1, 0], [2, 0], [0, 1], [3, 1], [1, 2], [2, 2]] },
+                { name: 'Boot', points: [[0, 0], [1, 0], [0, 1], [2, 1], [1, 2]] },
+                { name: 'Brotlaib', points: [[1, 0], [2, 0], [0, 1], [3, 1], [1, 2], [3, 2], [2, 3]] },
+                { name: 'Kübel', points: [[1, 0], [0, 1], [2, 1], [1, 2]] },
+                { name: 'Kahn', points: [[1, 0], [0, 1], [2, 1], [1, 2], [3, 2], [2, 3]] },
+                { name: 'Teich', points: [[1, 0], [2, 0], [0, 1], [3, 1], [0, 2], [3, 2], [1, 3], [2, 3]] },
+                { name: 'Fresser', points: [[0, 0], [1, 0], [0, 1], [2, 1], [2, 2], [2, 3], [3, 3]] }
             ],
-            'Oscillators': [
+            'Oszillatoren': [
                 { name: 'Blinker', points: [[0, 0], [1, 0], [2, 0]] },
                 { name: 'Toad', points: [[1, 0], [2, 0], [3, 0], [0, 1], [1, 1], [2, 1]] },
                 { name: 'Beacon', points: [[0, 0], [1, 0], [0, 1], [1, 1], [2, 2], [3, 2], [2, 3], [3, 3]] },
                 { name: 'Pulsar', points: [[2, 0], [3, 0], [4, 0], [8, 0], [9, 0], [10, 0], [0, 2], [5, 2], [7, 2], [12, 2], [0, 3], [5, 3], [7, 3], [12, 3], [0, 4], [5, 4], [7, 4], [12, 4], [2, 5], [3, 5], [4, 5], [8, 5], [9, 5], [10, 5], [2, 7], [3, 7], [4, 7], [8, 7], [9, 7], [10, 7], [0, 8], [5, 8], [7, 8], [12, 8], [0, 9], [5, 9], [7, 9], [12, 9], [0, 10], [5, 10], [7, 10], [12, 10], [2, 12], [3, 12], [4, 12], [8, 12], [9, 12], [10, 12]] }
             ],
-            'Spaceships': [
-                { name: 'Glider', points: [[1, 0], [2, 1], [0, 2], [1, 2], [2, 2]] },
-                { name: 'LWSS', points: [[1, 0], [4, 0], [0, 0], [0, 2], [4, 2], [0, 2], [1, 3], [2, 3], [3, 3], [4, 2], [4, 1], [0, 1]] } // Approximation
+            'Raumschiffe': [
+                { name: 'Gleiter', points: [[1, 0], [2, 1], [0, 2], [1, 2], [2, 2]] },
+                { name: 'LWSS', points: [[1, 0], [4, 0], [0, 0], [0, 2], [4, 2], [0, 2], [1, 3], [2, 3], [3, 3], [4, 2], [4, 1], [0, 1]] }
             ]
         };
 
@@ -148,8 +154,24 @@ class GameOfLife {
             patterns.forEach(p => {
                 const item = document.createElement('div');
                 item.className = 'object-item';
-                item.innerHTML = `<span>${p.name}</span>`;
-                item.addEventListener('click', () => {
+
+                // Create Preview Canvas
+                const canvas = document.createElement('canvas');
+                canvas.width = 60;
+                canvas.height = 60;
+                canvas.className = 'preview-canvas';
+                this.drawPreview(canvas, p.points);
+
+                const label = document.createElement('span');
+                label.textContent = p.name;
+
+                item.appendChild(label); // Label atop? User said "neben dem Namen Obendrüber ebenfalls eine Vorschau". Usually Preview Top, Name Bottom.
+                // Let's prepend canvas.
+                item.insertBefore(canvas, label);
+
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevent bubbling
+                    // e.preventDefault(); // Stop any default scrolling
                     this.selectedPattern = p;
                     this.modalObjects.classList.add('hidden');
                     // Optional: Change cursor?
@@ -160,6 +182,47 @@ class GameOfLife {
             groupDiv.appendChild(grid);
             this.objectsList.appendChild(groupDiv);
         }
+    }
+
+    drawPreview(canvas, points) {
+        const ctx = canvas.getContext('2d');
+        const w = canvas.width;
+        const h = canvas.height;
+
+        // Calculate bounds
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        points.forEach(([x, y]) => {
+            if (x < minX) minX = x;
+            if (y < minY) minY = y;
+            if (x > maxX) maxX = x;
+            if (y > maxY) maxY = y;
+        });
+
+        const contentW = maxX - minX + 1;
+        const contentH = maxY - minY + 1;
+
+        // Scale to fit (leaving margin)
+        const margin = 10;
+        const availW = w - margin * 2;
+        const availH = h - margin * 2;
+
+        const scaleX = availW / contentW;
+        const scaleY = availH / contentH;
+        const scale = Math.min(scaleX, scaleY, 10); // Cap max scale for small items
+
+        const drawW = contentW * scale;
+        const drawH = contentH * scale;
+
+        const offX = (w - drawW) / 2;
+        const offY = (h - drawH) / 2;
+
+        ctx.fillStyle = 'white';
+        points.forEach(([x, y]) => {
+            // Normalized coordinates
+            const nx = x - minX;
+            const ny = y - minY;
+            ctx.fillRect(offX + nx * scale, offY + ny * scale, scale - 1, scale - 1);
+        });
     }
 
     makeKey(x, y) {
