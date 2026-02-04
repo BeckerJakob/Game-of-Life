@@ -249,6 +249,8 @@ input[type=range]::-webkit-slider-runnable-track {
     gap: 0.5rem;
     aspect-ratio: 1;
     /* Make items square */
+    position: relative;
+    /* For badge positioning */
 }
 
 .object-item:hover {
@@ -270,6 +272,28 @@ input[type=range]::-webkit-slider-runnable-track {
 
 .object-item span {
     font-size: 0.9rem;
+    font-weight: bold;
+}
+
+/* Cycle Badge */
+.period-badge {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    padding: 2px 4px;
+    font-size: 0.7rem;
+    color: #bbb;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    pointer-events: none;
+}
+
+.period-badge::before {
+    content: '↻';
     font-weight: bold;
 }
 
